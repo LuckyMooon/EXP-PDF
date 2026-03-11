@@ -17,7 +17,7 @@ Da EXP-PDF als Chromium-Extension fungiert, kannst du ihn in wenigen Schritten m
 
 1. Lade dir die aktuelle `EXP-PDF.zip` aus dem Bereich [**Releases**](https://github.com/LuckyMooon/EXP-PDF/releases) herunter.
 2. Entpacke die ZIP-Datei in einen Ordner deiner Wahl (zB unter `Dokumente/EXP-PDF`).
-3. Öffne deinen Chromium-Browser (zB Chrome) und navigiere zu den Erweiterungen ([chrome://extensions/](chrome://extensions/)).
+3. Öffne deinen Chromium-Browser (zB Chrome) und navigiere zu den Erweiterungen [chrome://extensions/](chrome://extensions/).
 4. Aktiviere oben rechts den **Entwicklermodus** (Developer Mode).
 5. Klicke auf **"Entpackte Erweiterung laden"** (Load unpacked) und wähle den Ordner aus, in den du die Dateien entpackt hast.
 6. Fertig! EXP-PDF öffnet sich nun automatisch, sobald du eine PDF-Datei im Browser aufrufst.
