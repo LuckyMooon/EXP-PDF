@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lumina PDF</title>
+
+  <!--
+    FONTS: Google Fonts dürfen in Extensions über CSP nicht direkt geladen werden.
+    Wir betten die Outfit-Schrift als @font-face aus dem lib/fonts/ Ordner ein.
+    Alternativ: im viewer.css mit @import url(...) von fonts.googleapis.com —
+    das funktioniert in viewer.html Seiten (keine content_scripts), ABER nur
+    wenn "https://fonts.googleapis.com" in host_permissions steht.
+    Einfachste Lösung für den Start: font-family Fallback auf System-Fonts,
+    später Schriften lokal einbinden.
+  -->
+  <link rel="stylesheet" href="viewer.css"/>
+
+  <!--
+    Material Icons: Ebenfalls extern. Für die Extension entweder:
+    a) Lokal hosten (lib/material-icons/) — empfohlen für Production
+    b) Über host_permissions erlauben — einfacher für Entwicklung
+
+    Für jetzt: host_permissions in manifest.json enthält fonts.googleapis.com
+    und fonts.gstatic.com, dann klappt dieser Link:
+  -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+</head>
+<body class="lt">
+
+<!-- Reading mode reveal strip -->
+<div class="rdstrip" id="rdstrip"></div>
+
+<!-- TOPBAR -->
+<header class="bar" id="bar">
+  <div class="bar-l">
+    <button class="logo-mark" id="btnSidebar" title="Seitenleiste"><span class="material-icons-round">menu</span></button>
+    <div class="file-chip" id="fileChip"><span class="material-icons-round">picture_as_pdf</span><span id="fileName">Kein Dokument geöffnet</span></div>
+  </div>
+  <div class="bar-c">
+    <div class="cl">
+      <button class="ib" id="btnPrev" disabled><span class="material-icons-round">chevron_left</span></button>
+      <div class="pg-info">
+        <input type="number" id="pageInput" value="1" min="1"/>
+        <span class="pg-sep">/</span>
+        <span id="totalPg">–</span>
+      </div>
+      <button class="ib" id="btnNext" disabled><span class="material-icons-round">chevron_right</span></button>
+    </div>
+    <div class="cl">
+      <button class="ib" id="btnZoomOut"><span class="material-icons-round">remove</span></button>
+      <button class="zlbl" id="zoomLbl">100%</button>
+      <button class="ib" id="btnZoomIn"><span class="material-icons-round">add</span></button>
+      <button class="ib" id="btnFit" title="Auf Bildschirmgröße zoomen"><span class="material-icons-round">fit_screen</span></button>
+    </div>
+  </div>
+  <div class="bar-r">
+    <div class="bar-r-group">
+      <button class="ib" id="btnSearch"><span class="material-icons-round">search</span></button>
+      <div class="sdl simple" id="sdl">
+        <button class="sdl-main" id="btnDlMain" disabled title="Speichern"><span class="material-icons-round">save</span></button>
+        <button class="sdl-arr" id="btnDlArr"><span class="material-icons-round">expand_more</span></button>
+        <div class="sdl-drop" id="sdlDrop">
+          <div class="ditem" id="dlWithMk"><span class="material-icons-round">picture_as_pdf</span>Mit Markup als PDF</div>
+          <div class="ditem" id="dlNoMk"><span class="material-icons-round">download</span>Original-PDF herunterladen</div>
+        </div>
+      </div>
+      <div class="mwrap">
+        <button class="ib" id="btnMenu"><span class="material-icons-round">more_vert</span></button>
+        <div class="mdrop" id="mdrop">
+          <!-- Theme -->
+          <div class="mi row">
+            <div class="lbl"><span class="material-icons-round">contrast</span>Design</div>
+            <button class="theme-toggle" id="themeToggle"><span class="material-icons-round" id="themeIcon">light_mode</span><span id="themeLabel">Hell</span></button>
+          </div>
+          <div class="mdi"></div>
+          <!-- Open -->
+          <div class="mi hidden" id="miOpen" style="position:relative">
+            <span class="material-icons-round">upload_file</span>Neues PDF öffnen
+            <input type="file" accept=".pdf,application/pdf" id="fileMenu" style="position:absolute;inset:0;opacity:0;cursor:pointer"/>
+          </div>
+          <div class="mdi hidden" id="miOpenDiv"></div>
+          <!-- View -->
+          <div class="mi check" id="miReadMode"><span class="material-icons-round">menu_book</span>Lesemodus<div class="ck"><span class="material-icons-round ck-icon">check</span></div></div>
+          <div class="mi check" id="miNight"><span class="material-icons-round">nightlight</span>Nachtansicht<div class="ck"><span class="material-icons-round ck-icon">check</span></div></div>
+          <div class="mi check" id="miTwoPage"><span class="material-icons-round">auto_stories</span>Zweiseitige Ansicht<div class="ck"><span class="material-icons-round ck-icon">check</span></div></div>
+          <div class="mdi"></div>
+          <div class="mi check on" id="miShowFab"><span class="material-icons-round">edit</span>Markup-Button anzeigen<div class="ck"><span class="material-icons-round ck-icon">check</span></div></div>
+          <div class="mdi"></div>
+          <div class="mi" id="miPresent"><span class="material-icons-round">slideshow</span>Präsentationsmodus</div>
+          <div class="mdi"></div>
+          <!-- Doc actions -->
+          <div class="mi" id="miPrint"><span class="material-icons-round">print</span>Drucken</div>
+          <div class="mi" id="miRotatePage"><span class="material-icons-round">rotate_right</span>Seite rotieren</div>
+          <div class="mi" id="miExtract"><span class="material-icons-round">file_download</span>Seite extrahieren (PDF)</div>
+          <div class="mi" id="miExportPNG"><span class="material-icons-round">image</span>Als Bilder exportieren (PNG)</div>
+          <div class="mdi"></div>
+          <!-- Annotations -->
+          <div class="mi" id="miAnnExport"><span class="material-icons-round">save_alt</span>Annotationen exportieren</div>
+          <div class="mi" id="miAnnImport" style="position:relative">
+            <span class="material-icons-round">upload</span>Annotationen importieren
+            <input type="file" accept=".json" id="annFile" style="position:absolute;inset:0;opacity:0;cursor:pointer"/>
+          </div>
+          <div class="mdi"></div>
+          <!-- Meta -->
+          <div class="mi" id="miDocProps"><span class="material-icons-round">info</span>Dokumenteigenschaften</div>
+          <div class="mi" id="miSettings"><span class="material-icons-round">settings</span>Einstellungen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- SEARCH -->
+<div class="sbar" id="sbar">
+  <span class="material-icons-round" style="font-size:17px;color:var(--os2)">search</span>
+  <input type="text" id="searchInput" placeholder="Im Dokument suchen…"/>
+  <span id="scnt" style="font-size:11.5px;color:var(--os2);padding:0 4px;white-space:nowrap"></span>
+  <button class="ib sm" id="btnSPrev"><span class="material-icons-round">keyboard_arrow_up</span></button>
+  <button class="ib sm" id="btnSNext"><span class="material-icons-round">keyboard_arrow_down</span></button>
+  <button class="ib sm" id="btnSClose"><span class="material-icons-round">close</span></button>
+</div>
+
+<!-- SHELL -->
+<div class="shell" id="shell">
+  <!-- Left Sidebar -->
+  <div class="lsidebar" id="lsidebar">
+    <div class="sb-tabs">
+      <div class="sb-tab active" data-pane="pages"><span class="material-icons-round">layers</span>Seiten</div>
+      <div class="sb-tab" data-pane="toc"><span class="material-icons-round">format_list_bulleted</span>Inhalt</div>
+      <div class="sb-tab" data-pane="bookmarks"><span class="material-icons-round">bookmark</span>Lesezeichen</div>
+    </div>
+    <div class="sb-pane active" id="pane-pages"></div>
+    <div class="sb-pane" id="pane-toc"></div>
+    <div class="sb-pane" id="pane-bookmarks"></div>
+  </div>
+  <!-- Viewport -->
+  <div class="vp" id="vp">
+    <!-- Drop zone (bleibt für manuelles Öffnen) -->
+    <div class="dz" id="dz">
+      <div class="dz-ico"><span class="material-icons-round">picture_as_pdf</span></div>
+      <h1 class="dz-title">PDF öffnen</h1>
+      <p class="dz-sub">Datei hierher ziehen oder über den Button auswählen.</p>
+      <label class="dz-btn">
+        <span class="material-icons-round">upload_file</span>Datei auswählen
+        <input type="file" accept=".pdf,application/pdf" id="fileInput" style="display:none"/>
+      </label>
+      <div id="recentSection"></div>
+    </div>
+    <div class="pages hidden" id="pages"></div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab">
+  <div class="fab-dot"></div>
+  <span class="material-icons-round">edit</span>
+</button>
+
+<!-- MARKUP PANEL -->
+<div class="mkp" id="mkp">
+  <div class="pk-hd">
+    <span class="pk-title">Markup</span>
+    <button class="del-btn" id="btnClear"
+      style="width:26px;height:26px;min-width:26px;max-width:26px;padding:0;flex-shrink:0;font-size:0"
+      title="Seite leeren">
+      <span class="material-icons-round" style="font-size:15px;pointer-events:none">delete_outline</span>
+    </button>
+  </div>
+  <div class="mkp-body">
+    <div class="ps">
+      <span class="psl">Werkzeug</span>
+      <div class="tg">
+        <button class="tbtn active" data-tool="pen"><span class="material-icons-round">draw</span><span>Stift</span></button>
+        <button class="tbtn" data-tool="highlighter"><span class="material-icons-round">border_color</span><span>Marker</span></button>
+        <button class="tbtn" data-tool="text"><span class="material-icons-round">text_fields</span><span>Text</span></button>
+        <button class="tbtn" data-tool="eraser"><span class="material-icons-round">backspace</span><span>Löschen</span></button>
+        <button class="tbtn" data-tool="rect"><span class="material-icons-round">rectangle</span><span>Rechteck</span></button>
+        <button class="tbtn" data-tool="ellipse"><span class="material-icons-round">circle</span><span>Ellipse</span></button>
+        <button class="tbtn" data-tool="line"><span class="material-icons-round">remove</span><span>Linie</span></button>
+        <button class="tbtn" data-tool="arrow"><span class="material-icons-round">arrow_forward</span><span>Pfeil</span></button>
+        <button class="tbtn" data-tool="underline"><span class="material-icons-round">format_underlined</span><span>Unterstrich</span></button>
+        <button class="tbtn" data-tool="strikethrough"><span class="material-icons-round">strikethrough_s</span><span>Durchstr.</span></button>
+        <button class="tbtn" data-tool="sticky"><span class="material-icons-round">sticky_note_2</span><span>Notiz</span></button>
+      </div>
+    </div>
+    <div class="ps">
+      <span class="psl">Farbe</span>
+      <div class="recent-row" id="recentRow"><span class="rlbl">Zuletzt:</span></div>
+      <div class="cmain">
+        <div class="cbig" id="cbig">
+          <div class="cbig-inner" id="cbigInner"></div>
+          <span class="cbig-lbl" id="cbigLbl">#E63946</span>
+          <input type="color" id="colorPicker" value="#E63946"/>
+        </div>
+        <button class="eyebtn" id="btnEye" title="Pipette"><span class="material-icons-round">colorize</span></button>
+      </div>
+      <div class="msw-row">
+        <button class="msw active" data-c="#E63946" style="background:#E63946"></button>
+        <button class="msw" data-c="#2196F3" style="background:#2196F3"></button>
+        <button class="msw" data-c="#4CAF50" style="background:#4CAF50"></button>
+        <button class="msw" data-c="#FF9800" style="background:#FF9800"></button>
+        <button class="msw" data-c="#9C27B0" style="background:#9C27B0"></button>
+        <button class="msw" data-c="#00BCD4" style="background:#00BCD4"></button>
+        <button class="msw" data-c="#F5C518" style="background:#F5C518"></button>
+        <button class="msw" data-c="#212121" style="background:#212121"></button>
+        <button class="msw" data-c="#fff" style="background:#fff;border:1px solid var(--ov)"></button>
+      </div>
+    </div>
+    <div class="ps" id="strokeSec">
+      <span class="psl">Stärke</span>
+      <div class="slr"><input type="range" class="sl" id="strokeSl" min="1" max="24" value="3"/><span class="sv2" id="strokeV">3px</span></div>
+    </div>
+    <div class="ps hidden" id="fontSec">
+      <span class="psl">Schriftgröße</span>
+      <div class="slr"><input type="range" class="sl" id="fontSl" min="10" max="72" value="18"/><span class="sv2" id="fontV">18px</span></div>
+    </div>
+    <div class="ps">
+      <span class="psl">Deckkraft</span>
+      <div class="slr"><input type="range" class="sl" id="opacSl" min="10" max="100" value="100"/><span class="sv2" id="opacV">100%</span></div>
+    </div>
+    <div class="ps">
+      <div class="row2">
+        <button class="abtn sec" id="btnUndo"><span class="material-icons-round">undo</span>Rückgängig</button>
+        <button class="abtn sec" id="btnRedo"><span class="material-icons-round">redo</span>Wiederholen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEXT FLOAT -->
+<div class="tf hidden" id="textFloat">
+  <input type="text" id="textField" placeholder="Text eingeben…"/>
+  <button class="ib sm tok" id="btnTok"><span class="material-icons-round">check</span></button>
+  <button class="ib sm tno" id="btnTno"><span class="material-icons-round">close</span></button>
+</div>
+
+<!-- Viewer-Logik (ausgelagertes Script) -->
+<script type="module" src="viewer.js"></script>
+
+</body>
+</html>
