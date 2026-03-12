@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lumina PDF</title>
+  <title>EXP-PDF</title>
 
   <!--
     FONTS: Google Fonts dürfen in Extensions über CSP nicht direkt geladen werden.
-    Wir betten die Outfit-Schrift als @font-face aus dem lib/fonts/ Ordner ein.
+    Die Outfit-Schrift wird als @font-face aus dem lib/fonts/ Ordner eingebettet.
     Alternativ: im viewer.css mit @import url(...) von fonts.googleapis.com —
-    das funktioniert in viewer.html Seiten (keine content_scripts), ABER nur
+    funktioniert in viewer.html Seiten (keine content_scripts), ABER nur
     wenn "https://fonts.googleapis.com" in host_permissions steht.
     Einfachste Lösung für den Start: font-family Fallback auf System-Fonts,
     später Schriften lokal einbinden.

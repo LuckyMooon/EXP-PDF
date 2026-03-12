@@ -1,4 +1,4 @@
-// background.js — Lumina PDF Viewer Service Worker
+// background.js — EXP-PDF Viewer Service Worker
 // Fängt .pdf URLs über webNavigation ab (für direkte PDF-Links).
 // PDFs ohne .pdf Endung (z.B. Moodle) werden vom Content Script pdf_intercept.js abgefangen.
 
@@ -26,7 +26,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(
   (details) => {
     if (details.frameId !== 0) return;
     if (shouldIntercept(details.url)) {
-      console.log('[Lumina] Abgefangen (http):', details.url);
+      console.log('[EXP-PDF] Abgefangen (http):', details.url);
       chrome.tabs.update(details.tabId, { url: getViewerUrl(details.url) });
     }
   },
@@ -38,11 +38,11 @@ chrome.webNavigation.onBeforeNavigate.addListener(
   (details) => {
     if (details.frameId !== 0) return;
     if (shouldIntercept(details.url)) {
-      console.log('[Lumina] Abgefangen (file):', details.url);
+      console.log('[EXP-PDF] Abgefangen (file):', details.url);
       chrome.tabs.update(details.tabId, { url: getViewerUrl(details.url) });
     }
   },
   { url: [{ schemes: ['file'] }] }
 );
 
-console.log('[Lumina PDF] Service Worker bereit.');
+console.log('[EXP-PDF] Service Worker bereit.');

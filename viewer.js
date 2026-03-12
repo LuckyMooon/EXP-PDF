@@ -209,7 +209,7 @@ async function loadPDF(url){
     else setTimeout(initObs,400);
   }catch(err){
     D.pages.innerHTML=`<div class="stov"><p style="color:var(--er);font-size:14px;font-weight:600;text-align:center;padding:24px">⚠ ${err.message}</p></div>`;
-    console.error('[Lumina] loadPDF Fehler:', err);
+    console.error('[EXP-PDF] loadPDF Fehler:', err);
   }
 }
 async function calcBase(){

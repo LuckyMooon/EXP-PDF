@@ -3,7 +3,7 @@
 // Das fängt auch PDFs ab, deren URL nicht auf .pdf endet (z.B. Moodle).
 
 (function () {
-  // Wenn diese Seite ein PDF ist (egal welche URL), zum Lumina Viewer weiterleiten
+  // Wenn diese Seite ein PDF ist (egal welche URL), zum EXP-PDF Viewer weiterleiten
   if (document.contentType === 'application/pdf') {
     const currentUrl = window.location.href;
 
